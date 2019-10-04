@@ -1,81 +1,159 @@
-function hBarError=barError(y,x_labels,varargin)
-% Generate a bar plot with error bars and w/ option to overlay raw data 
+function barErrorFig=barError(y,varargin)
+% Generate a bar plot with error bars and overlay of the raw data 
 %
 % David S. White [dswhite2012@gmail.com];
-% 2019-09-19 MIT License
+% MIT License
+% updated: 2019-10-04 
 %
 % Overview: 
 % ----------
 % The goal of barError is to generate a barplot with error bar and raw data
 % shown. This is an extension of built in MATLAB plotting functions:
-% bar, errorbar, & scatter. barError will compute the mean and standard
-% deviation of values provided in y for plotting the summary statistics
-% overlaid with raw data.
+%   1. bar 
+%   2. errorbar 
+%   3. scatter 
+% barError will compute the mean and standard deviation of values provided 
+% in y for plotting the summary statistics overlaid with raw data.
 % 
-% Input Data: 
-% -----------
-% x = vector of x values [optional, can be left empty]
-% y = cell array of y values [n,m] where n is per condtion and m is per
-% group. [column major]
-% 
+% Input: 
+% -----
+% barError(y) = y is cell array of y values [n,m] where n is per condtion 
+% and m is per group. [column major]. 
+%
 % Ouput Data: 
 % -----------
-% H = final figure. 
+% barErrorFig = final figure
 %
+% Varagin 
+% -------
+% barError(y,'PARAM1','val1', 'PARAM2', 'val2', ...)
+% specifies optional conditons for plotting. 
+%   xLabel
+%   yLabel
+%   conditions
+%   groups
+%   lineWidth
+%   capSize
+%   jitterAmount
+%   fillData
+%   dataSize
+%
+% -------------------------------------------------------------------------
+%
+% Initalize:
+% ----------
+%
+% Grab number of groups and conditons from the size of y
+[numConditions, numGroups] = size(y); 
 
-% Check input data. 
-% -----------------
-[n_conditions, n_groups] = size(y); 
-% should write a check for if y is cell 
+% Set Default values for plotting. These will be updated by varargin 
+xLabel = 'Conditions';
+yLabel = 'Observed Values';
+conditions = [1:numConditions]; 
+groups = cell(numGroups,1); 
 
-% compute mean & std values for all conditoins and groups of y
-y_mu = zeros(n_conditions,n_groups);
-y_sd = zeros(n_conditions,n_groups);
-for n = 1:n_conditions
-    for m = 1:n_groups
-        y_mu(n,m) = mean(y{n,m}); 
-        y_sd(n,m) = std(y{n,m}); 
+% Name the groups by number  
+for n = 1:numGroups
+    groups{n} = ['Group ',num2str(n)]; 
+end
+barAlpha = 0.6; 
+lineWidth = 1; 
+jitterAmount = 0.05; 
+capSize = 20; 
+fillData = 0;
+dataSize = 100; 
+
+% check varargin and set defaults if needed
+for i = 1:2:length(varargin)-1
+    switch varargin{i}
+        case 'xLabel'
+            xLabel = varargin{i+1}; 
+        case 'yLabel'
+            yLabel = varargin{i+1}; 
+        case 'conditions'
+            conditions = varargin{i+1}; 
+        case 'groups'
+            groups = varargin{i+1}; 
+        case 'lineWidth'
+            lineWidth = varargin{i+1};
+        case 'capSize'
+            capSize = varargin{i+1};
+        case 'jitterAmount'
+            jitterAmount = varargin{i+1}; 
+        case 'fillData'
+            fillData = varargin{i+1}; 
+        case 'dataSize'
+            dataSize = varargin{i+1}; 
     end
 end
-% set default width of bar plot 
-if n_conditions == 1
-    bar_width = 0.75; 
-else
-     bar_width = 1; 
+
+% compute mean & std values for all conditions and groups in y
+yMu = zeros(numConditions,numGroups);
+ySD = zeros(numConditions,numGroups);
+for n = 1:numConditions
+    for m = 1:numGroups
+        yMu(n,m) = mean(y{n,m}); 
+        ySD(n,m) = std(y{n,m}); 
+    end
 end
 
-% Generate Figure
-figure; 
+% set default width of bar plot 
+if numGroups == 1
+    barWidth = 0.75; 
+else
+    barWidth = 1; 
+end
+
+% Begin generating the figure
+% ----------------------------
 
 % Default bar plot  
-hBarError = bar(y_mu,bar_width); 
-hold on
+barErrorFig = bar(yMu,barWidth,'LineWidth',lineWidth, 'FaceAlpha',barAlpha,...
+    'EdgeColor', 'k'); 
 
-% grab all x_data information 
+% Set axis labels and legend. turn off autoupdate of legend so values from
+% scatter and error bar do not get added. 
+ylabel(yLabel);
+xlabel(xLabel);
+xticklabels(conditions);
+legend(groups,'location','northwest','AutoUpdate','off');
 
-
-% adjust color and specs
+% Plot Error Bars on top of Bar Graph
+hold on;
 
 % plot the error [top only]; need to match linewidths
 % need to know position of x axis
-for m = 1:n_groups
+
+% use default colors for now [should update for custom colors]
+dataColors = lines(numGroups);
+
+% Plot the scatter and errorbars of all data 
+for m = 1:numGroups
     % grab offset from figure if plotting multiple groups
-    x_data =  hBarError(m).XData+hBarError(m).XOffset;
-    
-    % plot error bar with top line only [need to modify]
-    errorbar(x_data, y_mu(:,m), nan(numel(y_sd(:,m)),1), y_sd(:,m),...
-        'k','linestyle','none','CapSize',20,'linewidth',1); hold on
+    xData =  barErrorFig(m).XData+barErrorFig(m).XOffset;
     
     % now scatter on the data
-    for n= 1:n_conditions
-        y_data = y{n,m};
-        scatter(zeros(numel(y_data),1)+x_data(n),y_data,100,...
-            'MarkerEdgeColor','k', 'MarkerFaceAlpha',0.75,'jitter','on','jitterAmount',0); hold on
+    for n= 1:numConditions
+        yData = y{n,m};
+        if fillData
+            scatter(zeros(numel(yData),1)+xData(n),yData,dataSize,'filled',...
+                'MarkerFaceColor', dataColors(m,:) ,'MarkerEdgeColor','k', ...
+                'MarkerFaceAlpha',1,'jitter','on','jitterAmount',jitterAmount);
+        else
+            scatter(zeros(numel(yData),1)+xData(n),yData,dataSize,...
+                'MarkerEdgeColor','k', 'MarkerFaceAlpha',0.75,'jitter','on',...
+                'jitterAmount',jitterAmount);
+        end
+        hold on
     end
-    
+    % plot error bar with top line only [need to modify]
+    errorbar(xData, yMu(:,m), nan(numel(ySD(:,m)),1), ySD(:,m),...
+        'k','linestyle','none','CapSize',capSize,'linewidth',lineWidth);
+    hold on
 end
 
+% turn on grid for better clarity
 grid on
-% now we need to show the data 
+
 end
 
