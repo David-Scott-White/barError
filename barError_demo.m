@@ -18,13 +18,19 @@ y{1,3} =y{1,1} * 2.5;
 y{2,3} =y{2,1} * 2.5;
 y{3,3} =y{3,1} * 2.5;
 y{4,3} =y{3,1} * 2.5;
-y = [y,y]
+y = [y,y];
 
 %% without modifications
+close all
 figure; 
 barError(y);
 
 %% with modificiaitons
-figure; 
-barError(y,'dataSize',30,'fillData',1,'jitterAmount',0.05); 
+h = figure; 
+barError(y,'dataSize',15,'fillData',1,'jitterAmount', 0.05, 'capSize',10);
+grid on
 pbaspect([2,1,1]);
+h.Units = 'inches';
+h.Position = [0,0,5,2.5];
+set(gca,'fontsize',7,'fontname','arial');
+saveas(h, 'demo.png')
