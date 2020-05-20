@@ -31,6 +31,6 @@ barError(y,'dataSize',15,'fillData',1,'jitterAmount', 0.05, 'capSize',10);
 grid on
 pbaspect([2,1,1]);
 h.Units = 'inches';
-h.Position = [0,0,5,2.5];
-set(gca,'fontsize',7,'fontname','arial');
-saveas(h, 'demo.png')
+h.Position = [0,0,8,4];
+set(gca,'fontsize',12,'fontname','arial');
+saveas(h, 'barError-example.png')
